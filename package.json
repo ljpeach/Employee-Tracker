@@ -1,0 +1,15 @@
+{
+  "name": "employee-tracker",
+  "version": "1.0.0",
+  "description": "A terminal application that uses a MySQL database and Node.js to allow users to organize and plan their businesses. ",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "author": "Liam Peachey",
+  "license": "ISC",
+  "dependencies": {
+    "inquirer": "^8.2.4",
+    "mysql2": "^3.6.2"
+  }
+}
