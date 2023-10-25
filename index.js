@@ -14,11 +14,11 @@ function menu(opt) {
     return inquirer.prompt(opt, { clearPromptOnDone: false }).then(async (answer) => {
         switch (answer.command) {
             case "View All Departments":
-                return getAllDepts((res) => { console.log(formatTable(res)); return menu(opt); });
+                return getAllDepts((res) => { res.length < 1 ? console.log('No departments!') : console.log(formatTable(res)); return menu(opt); });
             case "View All Roles":
-                return getAllRoles((res) => { console.log(formatTable(res)); return menu(opt); })
+                return getAllRoles((res) => { res.length < 1 ? console.log('No roles!') : console.log(formatTable(res)); return menu(opt); })
             case "View All Employees":
-                return getAllEmployees((res) => { console.log(formatTable(res)); return menu(opt); });
+                return getAllEmployees((res) => { res.length < 1 ? console.log('No employees!') : console.log(formatTable(res)); return menu(opt); });
             case "Add a Department":
                 return inquirer.prompt([{ message: "What is the name of the department?", name: "dept", type: "input" }]).then((answer) => {
                     findDept(answer.dept, (res) => {
