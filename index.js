@@ -31,7 +31,6 @@ function menu(opt) {
                 });
             case "Add a Role":
                 const askRole = (depts) => {
-                    console.log(depts);
                     return inquirer.prompt([
                         {
                             message: "What is the name of the role?",
@@ -74,7 +73,7 @@ function menu(opt) {
                 return getAllDepts(askRole);
             case "Add an Employee":
                 const askEmployee = (roles, managers) => {
-                    inquirer.prompt([
+                    return inquirer.prompt([
                         {
                             message: "What is the employee's first name?",
                             name: "firstName",
@@ -106,15 +105,34 @@ function menu(opt) {
                         }, () => { console.log('Successfully added!'); return menu(opt); })
                     })
                 };
-                getAllRoles((roles) =>
-                    getAllEmployees((managers) => {
-                        askEmployee(roles, managers);
-                    }
+                return getAllRoles((roles) =>
+                    getAllEmployees((managers) =>
+                        askEmployee(roles, managers)
                     )
                 )
-                break;
             case "Update an Employee Role":
-                console.log("TBD");
+                const askUpdate = (employee, roles) => {
+                    return inquirer.prompt([
+                        {
+                            message: "What employee's role do you want to update?",
+                            name: "employee",
+                            type: "list",
+                            choices: employee.map(employeeRow => ({ name: employeeRow.first_name + " " + employeeRow.last_name, value: employeeRow.id }))
+                        },
+                        {
+                            message: "Which role do you want to assign the selected employee?",
+                            name: "role",
+                            type: "list",
+                            choices: roles.map(roleRow => ({ name: roleRow.title, value: roleRow.id }))
+                        }
+                    ]).then((answers) => {
+                        updateEmployee({
+                            role: answers.role,
+                            id: answers.employee
+                        }, () => { console.log('Successfully updated!'); return menu(opt); })
+                    })
+                };
+                return getAllRoles(roles => getAllEmployees(employees => askUpdate(employees, roles)));
                 break;
             default:
                 db.end();
@@ -187,12 +205,10 @@ function addRole(role, callback) {
 }
 
 function addEmployee(employee, callback) {
-    console.log("role:", employee.role);
     findRole(employee.role, (roleID) => {
         if (roleID.length < 1) {
             throw new Error("Role does not exist.");
         }
-        console.log(employee.manager);
         if (employee.manager != 'none') {
             findEmployee(...employee.manager.split(" "), (managerID) => {
                 if (employee.manager != null && managerID.length < 1) {
@@ -225,9 +241,9 @@ function findEmployee(first, last, callback) {
     db.query('SELECT id FROM employee WHERE first_name=? AND last_name=?', [first, last], (err, result) => { err ? console.error(err) : callback(result); });
 }
 
-function updateEmployee(body) {
-    db.query('UDPATE employee SET role=? WHERE id=?', [body.role, body.id], (err, result) => {
-        err ? console.error(err) : console.log(result);
+function updateEmployee(body, callback) {
+    db.query('UPDATE employee SET role_id=? WHERE id=?', [body.role, body.id], (err, result) => {
+        err ? console.error(err) : callback(result);
     })
 }
 
