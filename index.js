@@ -12,23 +12,23 @@ function menu(opt) {
     inquirer.prompt(opt, { clearPromptOnDone: false }).then(async (answer) => {
         switch (answer.command) {
             case "View All Departments":
-                getAllDepts((res) => { console.log(formatTable(res)); menu(opt); });
+                getAllDepts((res) => { console.log(formatTable(res)); return menu(opt); });
                 break;
             case "View All Roles":
-                getAllRoles((res) => { console.log(formatTable(res)); menu(opt); })
+                getAllRoles((res) => { console.log(formatTable(res)); return menu(opt); })
                 break;
             case "View All Employees":
-                getAllEmployees((res) => { console.log(formatTable(res)); menu(opt); });
+                getAllEmployees((res) => { console.log(formatTable(res)); return menu(opt); });
                 break;
             case "Add a Department":
                 inquirer.prompt([{ message: "What is the name of the department?", name: "dept", type: "input" }]).then((answer) => {
                     findDept(answer.dept, (res) => {
                         if (res.length > 0) {
                             console.log("Department already exists.");
-                            menu(opt);
+                            return menu(opt);
                         }
                         else {
-                            addDept(answer.dept, (res) => { console.log("Added successfully!"); menu(opt); })
+                            addDept(answer.dept, (res) => { console.log("Added successfully!"); return menu(opt); })
                         }
                     })
                 });
@@ -69,13 +69,13 @@ function menu(opt) {
                                 salary: parseFloat(answers.salary),
                                 dept: answers.dept
                             }
-                            , () => { console.log('Successfully added!'); menu(opt); })
+                            , () => { console.log('Successfully added!'); return menu(opt); })
                     });
                 }
                 getAllDepts(askRole);
                 break;
             case "Add an Employee":
-                console.log("TBD");
+                const askEmployee = (roles, managers) => { }
                 break;
             case "Update an Employee Role":
                 console.log("TBD");
