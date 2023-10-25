@@ -12,13 +12,13 @@ function menu(opt) {
     inquirer.prompt(opt, { clearPromptOnDone: false }).then(async (answer) => {
         switch (answer.command) {
             case "View All Departments":
-                getAllDepts((res) => { console.log(res); menu(opt); });
+                getAllDepts((res) => { console.log(formatTable(res)); menu(opt); });
                 break;
             case "View All Roles":
-                getAllRoles((res) => { console.log(res); menu(opt); })
+                getAllRoles((res) => { console.log(formatTable(res)); menu(opt); })
                 break;
             case "View All Employees":
-                getAllEmployees((res) => { console.log(res); menu(opt); });
+                getAllEmployees((res) => { console.log(formatTable(res)); menu(opt); });
                 break;
             case "Add a Department":
                 inquirer.prompt([{ message: "What is the name of the department?", name: "dept", type: "input" }]).then((answer) => {
@@ -34,19 +34,23 @@ function menu(opt) {
                 });
                 break;
             case "Add a Role":
-                inquirer.prompt([
-                    {
-                        message: "What is the name of the role?",
-                        name: "title"
-                        type: "input"
-                    }
-                    {
-                        message: "What is the salary of the role?"
-                    }
-                    {
-                        message: "Which department does the role belong to?"
-                    }
-                ]).then((answers) => { });
+                // inquirer.prompt([
+                //     {
+                //         message: "What is the name of the role?",
+                //         name: "title",
+                //         type: "input",
+                //         filter: () => { }
+                //     }
+                //     {
+                //         message: "What is the salary of the role?"
+                //         name:,
+                //         type:,
+                //         filter: () => { }
+                //     }
+                //     {
+                //         message: "Which department does the role belong to?"
+                //     }
+                // ]).then((answers) => { });
                 break;
             case "Add an Employee":
                 console.log("TBD");
@@ -165,5 +169,34 @@ function updateEmployee(body) {
 
 // addRole({ dept: "Front End", title: "Graphic Designer", salary: 60.9 });
 // inquirer.prompt(menu).then();
+
+function formatTable(table) {
+    let ans = ''
+    let keys = Object.keys(table[0]);
+    let colWid = [];
+    for (let i = 0; i < keys.length; i++) {
+        let maxLength = String(keys[i]).length;
+        for (let j = 0; j < table.length; j++) {
+            let currentLen = String(table[j][keys[i]]).length;
+            if (maxLength < currentLen) { maxLength = currentLen; }
+        }
+        colWid.push(Math.ceil(maxLength / 8));
+        ans += "-".repeat(maxLength) + '\t';
+    }
+    ans += '\n';
+    let keyRow = ''
+    for (let i = 0; i < keys.length; i++) {
+        keyRow += keys[i] + '\t'.repeat(colWid[i] - Math.ceil((String(keys[i]).length + 1) / 8) + 1);
+    }
+    ans = keyRow + '\n' + ans;
+    for (let i = 0; i < table.length; i++) {
+        for (let j = 0; j < keys.length; j++) {
+            let word = table[i][keys[j]]
+            ans += word + '\t'.repeat(colWid[j] - Math.ceil((String(word).length + 1) / 8) + 1);
+        }
+        ans += '\n';
+    }
+    return ans;
+}
 
 init();
