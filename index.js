@@ -12,16 +12,13 @@ function menu(opt) {
     inquirer.prompt(opt, { clearPromptOnDone: false }).then(async (answer) => {
         switch (answer.command) {
             case "View All Departments":
-                getAllDepts((res) => { console.log(formatTable(res)); return menu(opt); });
-                break;
+                return getAllDepts((res) => { console.log(formatTable(res)); return menu(opt); });
             case "View All Roles":
-                getAllRoles((res) => { console.log(formatTable(res)); return menu(opt); })
-                break;
+                return getAllRoles((res) => { console.log(formatTable(res)); return menu(opt); })
             case "View All Employees":
-                getAllEmployees((res) => { console.log(formatTable(res)); return menu(opt); });
-                break;
+                return getAllEmployees((res) => { console.log(formatTable(res)); return menu(opt); });
             case "Add a Department":
-                inquirer.prompt([{ message: "What is the name of the department?", name: "dept", type: "input" }]).then((answer) => {
+                return inquirer.prompt([{ message: "What is the name of the department?", name: "dept", type: "input" }]).then((answer) => {
                     findDept(answer.dept, (res) => {
                         if (res.length > 0) {
                             console.log("Department already exists.");
@@ -32,10 +29,10 @@ function menu(opt) {
                         }
                     })
                 });
-                break;
             case "Add a Role":
                 const askRole = (depts) => {
-                    inquirer.prompt([
+                    console.log(depts);
+                    return inquirer.prompt([
                         {
                             message: "What is the name of the role?",
                             name: "title",
@@ -60,6 +57,8 @@ function menu(opt) {
                             message: "Which department does the role belong to?",
                             name: 'dept',
                             type: 'list',
+                            // This works bc the obj has a name and id value.
+                            // Inquirer knows to display name and choose id.
                             choices: depts
                         }
                     ]).then((answers) => {
@@ -72,16 +71,53 @@ function menu(opt) {
                             , () => { console.log('Successfully added!'); return menu(opt); })
                     });
                 }
-                getAllDepts(askRole);
-                break;
+                return getAllDepts(askRole);
             case "Add an Employee":
-                const askEmployee = (roles, managers) => { }
+                const askEmployee = (roles, managers) => {
+                    inquirer.prompt([
+                        {
+                            message: "What is the employee's first name?",
+                            name: "firstName",
+                            type: "input"
+                        },
+                        {
+                            message: "What is the employee's last name?",
+                            name: "lastName",
+                            type: "input"
+                        },
+                        {
+                            message: "What is the employee's role?",
+                            name: "role",
+                            type: "list",
+                            choices: roles.map(roleRow => roleRow.title)
+                        },
+                        {
+                            message: "Who is the employee's manager?",
+                            name: "manager",
+                            type: "list",
+                            choices: managers.map(manageRow => manageRow.first_name + " " + manageRow.last_name).concat(['none'])
+                        }
+                    ]).then((answers) => {
+                        addEmployee({
+                            firstName: answers.firstName,
+                            lastName: answers.lastName,
+                            role: answers.role,
+                            manager: answers.manager
+                        }, () => { console.log('Successfully added!'); return menu(opt); })
+                    })
+                };
+                getAllRoles((roles) =>
+                    getAllEmployees((managers) => {
+                        askEmployee(roles, managers);
+                    }
+                    )
+                )
                 break;
             case "Update an Employee Role":
                 console.log("TBD");
                 break;
             default:
-                process.exit(0);
+                db.end();
         }
     });
 }
@@ -151,22 +187,29 @@ function addRole(role, callback) {
 }
 
 function addEmployee(employee, callback) {
+    console.log("role:", employee.role);
     findRole(employee.role, (roleID) => {
         if (roleID.length < 1) {
             throw new Error("Role does not exist.");
         }
-        findEmployee(...employee.manager.split(" "), (managerID, roleID) => {
-            if (employee.manager != null && managerID.length < 1) {
-                throw new Error("Manager does not exist.");
-            }
+        console.log(employee.manager);
+        if (employee.manager != 'none') {
+            findEmployee(...employee.manager.split(" "), (managerID) => {
+                if (employee.manager != null && managerID.length < 1) {
+                    throw new Error("Manager does not exist.");
+                }
+                db.query("\
+                    INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUE (?, ?, ?, ?)", [employee.firstName, employee.lastName, roleID[0].id, managerID[0].id],
+                    (err, result) => { err ? console.error(err) : callback(result); });
+            });
+        }
+        else {
             db.query("\
-                INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUE (?, ?, ?, ?)", [employee.firstName, employee.lastName, roleID, managerID],
-                (err, result) => { err ? console.error(err) : console.log("Successfully Added!"); });
-        });
+                    INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUE (?, ?, ?, ?)", [employee.firstName, employee.lastName, roleID[0].id, null],
+                (err, result) => { err ? console.error(err) : callback(result); });
+        }
+
     });
-
-
-
 }
 
 function findDept(deptName, callback) {
