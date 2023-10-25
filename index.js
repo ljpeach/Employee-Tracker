@@ -72,7 +72,13 @@ function menu(opt) {
                             , () => { console.log('Successfully added!'); return menu(opt); })
                     });
                 }
-                return getAllDepts(askRole);
+                return getAllDepts((res) => {
+                    if (res.length < 1) {
+                        console.log("There are no departments for this role to belong to!");
+                        return menu(opt);
+                    }
+                    return askRole(res);
+                });
             case "Add an Employee":
                 const askEmployee = (roles, managers) => {
                     return inquirer.prompt([
@@ -107,10 +113,15 @@ function menu(opt) {
                         }, () => { console.log('Successfully added!'); return menu(opt); })
                     })
                 };
-                return getAllRoles((roles) =>
+                return getAllRoles((roles) => {
+                    if (roles.length < 1) {
+                        console.log("No roles to assign! You can't have an employee if they don't have a job!");
+                        return menu(opt);
+                    }
                     getAllEmployees((managers) =>
                         askEmployee(roles, managers)
                     )
+                }
                 )
             case "Update an Employee Role":
                 const askUpdate = (employee, roles) => {
@@ -134,7 +145,19 @@ function menu(opt) {
                         }, () => { console.log('Successfully updated!'); return menu(opt); })
                     })
                 };
-                return getAllRoles(roles => getAllEmployees(employees => askUpdate(employees, roles)));
+                return getAllEmployees(employees => {
+                    if (employees.length < 1) {
+                        console.log("There are no employees to update!");
+                        return menu(opt);
+                    }
+                    getAllRoles(roles => {
+                        if (roles.length < 1) {
+                            console.log("There are no roles to update change to!");
+                            return menu(opt);
+                        }
+                        askUpdate(employees, roles)
+                    })
+                });
                 break;
             default:
                 db.end();
