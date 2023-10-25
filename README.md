@@ -18,4 +18,4 @@ A terminal application that uses a MySQL database and Node.js to allow users to 
 
 ## Tutorial Video
 
-[Click here for tutorial video](https://youtu.be/)
+[Click here for tutorial video](https://youtu.be/nZtkb0Zf1zE)
