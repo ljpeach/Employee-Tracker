@@ -8,8 +8,10 @@ const db = mysql.createConnection({
     database: 'job_db'
 });
 
+// Main menu for application.
+// Inquirer prompts that handle different user choices, asks followup questions, etc.
 function menu(opt) {
-    inquirer.prompt(opt, { clearPromptOnDone: false }).then(async (answer) => {
+    return inquirer.prompt(opt, { clearPromptOnDone: false }).then(async (answer) => {
         switch (answer.command) {
             case "View All Departments":
                 return getAllDepts((res) => { console.log(formatTable(res)); return menu(opt); });
@@ -140,7 +142,8 @@ function menu(opt) {
     });
 }
 
-async function init() {
+// Begins application.
+function init() {
     const opt = [{
         message: "What would you like to do?",
         name: "command",
@@ -160,6 +163,7 @@ async function init() {
     menu(opt);
 }
 
+// Gets all depts. Callback determines what is to be done with results of query.
 function getAllDepts(callback) {
     db.query("\
     SELECT name, id \
@@ -168,6 +172,7 @@ function getAllDepts(callback) {
     );
 }
 
+// Gets all roles. Callback determines what is to be done with results of query.
 function getAllRoles(callback) {
     db.query("\
     SELECT title, role.id, name AS deparment, salary\
@@ -177,6 +182,7 @@ function getAllRoles(callback) {
         , (err, result) => { err ? console.error(err) : callback(result); });
 }
 
+// Gets all employees. Callback determines what is to be done with results of query.
 function getAllEmployees(callback) {
     db.query("\
     SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name, role.salary, CONCAT(manage.first_name, ' ', manage.last_name) AS manager\
@@ -187,39 +193,53 @@ function getAllEmployees(callback) {
         , (err, result) => { err ? console.error(err) : callback(result); });
 }
 
+// Used to add a new department to the DB.
+// dept is the name of the dept as a string.
 function addDept(dept, callback) {
     db.query("\
     INSERT INTO department (name) VALUE (?)", dept,
         (err, result) => { err ? console.error(err) : callback(result); });
 }
 
+// Used to add a new role to the DB.
+// role parameter is obj with title, salary, and dept fields.
 function addRole(role, callback) {
+    // Ensure specified department exists
     findDept(role.dept, (deptID) => {
         if (deptID.length < 1) {
             throw new Error("Department does not exist.");
         }
+        // Create role as specified
         db.query("\
         INSERT INTO role (title, salary, department_id) VALUE (?, ?, ?)", [role.title, role.salary, deptID[0].id],
             (err, result) => { err ? console.error(err) : callback(result); });
     });
 }
 
+// Used to add a new employee to the DB.
+// employee parameter is obj with role, manager, firstName, and lastName fields.
+// Manager can be set to null by defining manager as the string "none"
+// Callback determines how results are handled. 
 function addEmployee(employee, callback) {
+    // Ensure the role exists
     findRole(employee.role, (roleID) => {
         if (roleID.length < 1) {
             throw new Error("Role does not exist.");
         }
+        // Ensure the specified manager exists if the employee has a manager.
         if (employee.manager != 'none') {
             findEmployee(...employee.manager.split(" "), (managerID) => {
                 if (employee.manager != null && managerID.length < 1) {
                     throw new Error("Manager does not exist.");
                 }
+                // If manager and role found, create new employee.
                 db.query("\
                     INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUE (?, ?, ?, ?)", [employee.firstName, employee.lastName, roleID[0].id, managerID[0].id],
                     (err, result) => { err ? console.error(err) : callback(result); });
             });
         }
         else {
+            // Create new employee with no manager. 
             db.query("\
                     INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUE (?, ?, ?, ?)", [employee.firstName, employee.lastName, roleID[0].id, null],
                 (err, result) => { err ? console.error(err) : callback(result); });
@@ -228,32 +248,36 @@ function addEmployee(employee, callback) {
     });
 }
 
+// Finds a dept from dept name. Callback determines what is done with result.
 function findDept(deptName, callback) {
     db.query('SELECT id FROM department WHERE name=?', deptName, (err, result) => { err ? console.error(err) : callback(result); });
 }
 
+// Finds a role from a role name. Callback determines what is done with result.
 function findRole(roleName, callback) {
     db.query('SELECT id FROM role WHERE title=?', roleName, (err, result) => { err ? console.error(err) : callback(result) });
 
 }
 
+// Finds an employee based on their first and last name. Callback determines what is to be done with matches
 function findEmployee(first, last, callback) {
     db.query('SELECT id FROM employee WHERE first_name=? AND last_name=?', [first, last], (err, result) => { err ? console.error(err) : callback(result); });
 }
 
+// Body has role, id fields. 
+// Updates employee with id to have role
 function updateEmployee(body, callback) {
     db.query('UPDATE employee SET role_id=? WHERE id=?', [body.role, body.id], (err, result) => {
         err ? console.error(err) : callback(result);
     })
 }
 
-// addRole({ dept: "Front End", title: "Graphic Designer", salary: 60.9 });
-// inquirer.prompt(menu).then();
-
+// Function for displaying table outputs in a pretty way.
 function formatTable(table) {
-    let ans = ''
-    let keys = Object.keys(table[0]);
-    let colWid = [];
+    let ans = '' // Accumulator for our table string
+    let keys = Object.keys(table[0]); //All keys
+    let colWid = []; //Record for how wide each column is
+    // Determine each column's width, create and add bottom border for header.
     for (let i = 0; i < keys.length; i++) {
         let maxLength = String(keys[i]).length;
         for (let j = 0; j < table.length; j++) {
@@ -264,11 +288,14 @@ function formatTable(table) {
         ans += "-".repeat(maxLength) + '\t';
     }
     ans += '\n';
+    // Create header row. Number of tabs determined by width of row compared to length of key.
     let keyRow = ''
     for (let i = 0; i < keys.length; i++) {
         keyRow += keys[i] + '\t'.repeat(colWid[i] - Math.ceil((String(keys[i]).length + 1) / 8) + 1);
     }
+    // Add header row before border
     ans = keyRow + '\n' + ans;
+    // add rest of rows to table str, tabs determined by width of row compared to length of word.
     for (let i = 0; i < table.length; i++) {
         for (let j = 0; j < keys.length; j++) {
             let word = table[i][keys[j]]
@@ -276,6 +303,7 @@ function formatTable(table) {
         }
         ans += '\n';
     }
+    // Return full string.
     return ans;
 }
 
