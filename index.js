@@ -34,23 +34,45 @@ function menu(opt) {
                 });
                 break;
             case "Add a Role":
-                // inquirer.prompt([
-                //     {
-                //         message: "What is the name of the role?",
-                //         name: "title",
-                //         type: "input",
-                //         filter: () => { }
-                //     }
-                //     {
-                //         message: "What is the salary of the role?"
-                //         name:,
-                //         type:,
-                //         filter: () => { }
-                //     }
-                //     {
-                //         message: "Which department does the role belong to?"
-                //     }
-                // ]).then((answers) => { });
+                const askRole = (depts) => {
+                    inquirer.prompt([
+                        {
+                            message: "What is the name of the role?",
+                            name: "title",
+                            type: "input",
+                            filter: (input) => new Promise((resolve, reject) => {
+                                findRole(input, (res) => {
+                                    if (res.length > 0) {
+                                        reject("Role already exists.");
+                                    }
+                                    else {
+                                        resolve(input);
+                                    }
+                                })
+                            })
+                        },
+                        {
+                            message: "What is the salary of the role?",
+                            name: 'salary',
+                            type: 'input',
+                        },
+                        {
+                            message: "Which department does the role belong to?",
+                            name: 'dept',
+                            type: 'list',
+                            choices: depts
+                        }
+                    ]).then((answers) => {
+                        addRole(
+                            {
+                                title: answers.title,
+                                salary: parseFloat(answers.salary),
+                                dept: answers.dept
+                            }
+                            , () => { console.log('Successfully added!'); menu(opt); })
+                    });
+                }
+                getAllDepts(askRole);
                 break;
             case "Add an Employee":
                 console.log("TBD");
@@ -119,13 +141,12 @@ function addDept(dept, callback) {
 
 function addRole(role, callback) {
     findDept(role.dept, (deptID) => {
-        console.log(deptID);
         if (deptID.length < 1) {
             throw new Error("Department does not exist.");
         }
         db.query("\
         INSERT INTO role (title, salary, department_id) VALUE (?, ?, ?)", [role.title, role.salary, deptID[0].id],
-            (err, result) => { err ? console.error(err) : console.log("Successfully Added!"); });
+            (err, result) => { err ? console.error(err) : callback(result); });
     });
 }
 
